@@ -52,6 +52,17 @@ export default function ForecastChart({ data, historyLen }) {
           isAnimationActive={false}
         />
         <Line
+          name="Backtest"
+          type="monotone"
+          dataKey="btForecast"
+          stroke="#22d3ee"
+          strokeWidth={2}
+          strokeDasharray="5 3"
+          dot={false}
+          connectNulls={false}
+          isAnimationActive={false}
+        />
+        <Line
           name="Forecast"
           type="monotone"
           dataKey="forecast"

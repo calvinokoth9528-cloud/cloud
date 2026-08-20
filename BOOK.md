@@ -29,6 +29,9 @@
 17. [Running & Deploying the Dashboard](#17-running--deploying-the-dashboard)
 18. [Glossary](#18-glossary)
 19. [Further Reading](#19-further-reading)
+20. [Backtesting: Proving the Forecast](#20-backtesting-proving-the-forecast)
+21. [Model Comparison & Auto-Select](#21-model-comparison--auto-select)
+22. [Importing & Exporting Data (CSV)](#22-importing--exporting-data-csv)
 
 ---
 
@@ -482,7 +485,10 @@ Pure, testable functions — no React, no DOM:
 | `confidenceIntervals` | 95% band from residual σ |
 | `forecast` | Dispatcher: picks a method |
 | `metrics` | MAE, RMSE, MAPE |
+| `backtest` | Holds out the last N points and scores the forecast |
+| `compareModels` | Runs all four methods and ranks them |
 | `parseSeries` | Text → `number[]` |
+| `parseCSV` | CSV/file text → `number[]` (value column) |
 | `sampleSeries` | Random / trend / seasonal generators |
 
 ### The UI (`src/App.jsx`)
@@ -606,6 +612,108 @@ It is a mild upward trend — a good first thing to try each model against.
 - "Moving Averages" — for baseline smoothing and trend removal.
 - The **Recharts** documentation for how the visualization is rendered.
 - The source files listed in Chapter 15 — the best documentation is the code itself.
+
+---
+
+## 20. Backtesting: Proving the Forecast
+
+A model that fits the past beautifully can still fail on the future. **Backtesting** is the cure:
+temporarily hide the last `N` observations, ask the model to forecast them anyway, then measure how
+far off it was. It is the most honest accuracy check the dashboard offers, because it scores the
+model on data it never saw during fitting.
+
+### How to use it
+
+In the **Model** panel there is a **Backtest holdout** slider (0 = off). Slide it to, say, `6` and the
+dashboard:
+
+1. Trains the model on all but the last 6 points.
+2. Forecasts those 6 withheld points.
+3. Compares the forecast to the real values and reports **BT RMSE** and **BT MAE** in a panel.
+4. Draws a **cyan dashed line** on the chart — the model's forecast over the withheld region — so you
+   can eyeball it against the actuals (blue).
+
+### The math
+
+With `N` held out, train on `y[0 … n−N−1]`, forecast `ŷ[n−N … n−1]`, and compute:
+
+```
+BT RMSE = √( (1/N) · Σ (ŷᵢ − yᵢ)² )
+BT MAE  = (1/N) · Σ |ŷᵢ − yᵢ|
+```
+
+Lower is better. A small backtest error is real evidence the model will generalize; a small
+*in-sample* error alone is not.
+
+### In the code
+
+`backtest(series, options, testSize)` in `src/forecast.js`. It returns `{ testSize, test, pred, mae,
+rmse }`, or `null` if there is not enough history to train (it requires at least 5 training points).
+
+---
+
+## 21. Model Comparison & Auto-Select
+
+Which of the four methods is *best* for your data right now? Instead of guessing, the dashboard can
+rank them all at once.
+
+### The comparison table
+
+Below the chart is the **Model comparison** panel. It runs **Linear Regression, Moving Average,
+Holt, and Holt-Winters** on your current series and shows, for each:
+
+- **In-sample RMSE** — error on the history it was fitted to.
+- **Backtest RMSE** — error on the withheld holdout (when backtesting is on); otherwise a dash.
+
+The methods are sorted by score (backtest RMSE if backtesting is enabled, otherwise in-sample RMSE),
+and the winner is marked with a star (★). Click **Use** to switch the active method to that winner.
+
+### Why it matters
+
+Different shapes favor different models: a flat series loves Moving Average; a steady climb favors
+Linear or Holt; a wavy, repeating series favors Holt-Winters. The table turns that intuition into a
+measured, repeatable choice — and it updates live as you edit the data or the holdout size.
+
+### In the code
+
+`compareModels(series, options)` in `src/forecast.js` returns an array of
+`{ method, label, inSampleRMSE, backtestRMSE, best }`, already sorted with `best` set on the top
+row. `METHOD_LABELS` maps method keys to display names.
+
+---
+
+## 22. Importing & Exporting Data (CSV)
+
+Typing numbers by hand is fine for a demo, but real work starts with files.
+
+### Import
+
+In the **Data** panel, click **Import CSV**. Choose a `.csv` or `.txt` file. The parser
+(`parseCSV` in `src/forecast.js`) reads it line by line, takes the **last column** of each row (so a
+`date,value` file works), skips non-numeric header rows, and loads the values into the series. A
+plain comma- or space-separated list works too.
+
+### Export
+
+Click **Export CSV** to download the current result as `forecast.csv`:
+
+```
+t,type,value,lower,upper
+0,history,10
+1,history,12
+...
+12,forecast,24.3,21.0,27.6
+13,forecast,25.1,21.4,28.8
+...
+```
+
+History rows have empty bounds; forecast rows include the **95% prediction interval** (lower/upper),
+so the file is ready for a spreadsheet or another tool.
+
+### In the code
+
+Import uses the browser `FileReader` and `parseCSV`; export builds a CSV string, wraps it in a
+`Blob`, and triggers a download via a temporary anchor element. Both live in `src/App.jsx`.
 
 ---
 

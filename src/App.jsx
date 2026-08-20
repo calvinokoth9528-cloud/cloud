@@ -6,6 +6,9 @@ import {
   parseSeries,
   sampleSeries,
   confidenceIntervals,
+  backtest,
+  compareModels,
+  parseCSV,
 } from './forecast.js'
 
 const DEFAULT_TEXT = '10,12,11,14,13,16,15,18,17,20,19,22'
@@ -19,6 +22,7 @@ export default function App() {
   const [beta, setBeta] = useState(0.1)
   const [gamma, setGamma] = useState(0.3)
   const [seasonLength, setSeasonLength] = useState(12)
+  const [testSize, setTestSize] = useState(0)
 
   const series = useMemo(() => parseSeries(text), [text])
 
@@ -41,8 +45,36 @@ export default function App() {
     [series, result],
   )
 
+  const backtestResult = useMemo(
+    () =>
+      testSize > 0
+        ? backtest(
+            series,
+            { method, horizon, window: windowSize, alpha, beta, gamma, seasonLength },
+            testSize,
+          )
+        : null,
+    [series, method, horizon, windowSize, alpha, beta, gamma, seasonLength, testSize],
+  )
+
+  const comparison = useMemo(
+    () =>
+      compareModels(series, {
+        method,
+        horizon,
+        window: windowSize,
+        alpha,
+        beta,
+        gamma,
+        seasonLength,
+        testSize,
+      }),
+    [series, method, horizon, windowSize, alpha, beta, gamma, seasonLength, testSize],
+  )
+
   const chartData = useMemo(() => {
     const n = series.length
+    const btStart = backtestResult ? n - backtestResult.testSize : -1
     const hist = series.map((v, i) => ({
       t: i,
       history: v,
@@ -50,6 +82,7 @@ export default function App() {
       forecast: i === n - 1 ? v : null,
       lower: i === n - 1 ? v : null,
       upper: i === n - 1 ? v : null,
+      btForecast: backtestResult && i >= btStart ? backtestResult.pred[i - btStart] : null,
     }))
     const fc = result.forecast.map((v, h) => {
       const ci = intervals[h] || { lower: v, upper: v }
@@ -60,14 +93,44 @@ export default function App() {
         forecast: v,
         lower: ci.lower,
         upper: ci.upper,
+        btForecast: null,
       }
     })
     return [...hist, ...fc]
-  }, [series, result, intervals])
+  }, [series, result, intervals, backtestResult])
 
   const stats = useMemo(() => metrics(series, result.fit), [series, result])
 
   const loadSample = (kind) => setText(sampleSeries(kind).join(', '))
+
+  const handleFile = (e) => {
+    const file = e.target.files && e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const nums = parseCSV(String(reader.result))
+      if (nums.length) setText(nums.join(', '))
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
+
+  const handleExport = () => {
+    const n = series.length
+    const lines = ['t,type,value,lower,upper']
+    series.forEach((v, i) => lines.push(`${i},history,${v}`))
+    result.forecast.forEach((v, h) => {
+      const ci = intervals[h] || { lower: '', upper: '' }
+      lines.push(`${n + h},forecast,${v},${ci.lower ?? ''},${ci.upper ?? ''}`)
+    })
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'forecast.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <div className="app">
@@ -96,6 +159,13 @@ export default function App() {
             />
           </label>
           <p className="hint">{series.length} data points</p>
+          <div className="data-actions">
+            <label className="file-btn">
+              Import CSV
+              <input type="file" accept=".csv,.txt" onChange={handleFile} hidden />
+            </label>
+            <button onClick={handleExport}>Export CSV</button>
+          </div>
 
           <h2>Model</h2>
           <label className="field">
@@ -116,6 +186,17 @@ export default function App() {
               max={36}
               value={horizon}
               onChange={(e) => setHorizon(Number(e.target.value))}
+            />
+          </label>
+
+          <label className="field">
+            <span>Backtest holdout: {testSize === 0 ? 'off' : testSize}</span>
+            <input
+              type="range"
+              min={0}
+              max={Math.max(0, Math.min(24, Math.floor(series.length / 2) - 1))}
+              value={testSize}
+              onChange={(e) => setTestSize(Number(e.target.value))}
             />
           </label>
 
@@ -229,6 +310,20 @@ export default function App() {
             <ForecastChart data={chartData} historyLen={series.length} />
           </div>
 
+          {backtestResult && (
+            <div className="panel-inner backtest">
+              <h3>Backtest — held out last {backtestResult.testSize}</h3>
+              <div className="mini-metrics">
+                <Metric label="BT RMSE" value={backtestResult.rmse} />
+                <Metric label="BT MAE" value={backtestResult.mae} />
+              </div>
+              <p className="hint">
+                The cyan dashed line on the chart is the model&rsquo;s forecast over the withheld
+                region, compared against the actuals (blue).
+              </p>
+            </div>
+          )}
+
           <div className="forecast-table">
             <h3>Forecast</h3>
             <div className="chips">
@@ -238,6 +333,38 @@ export default function App() {
                 </span>
               ))}
             </div>
+          </div>
+
+          <div className="panel-inner comparison">
+            <h3>
+              Model comparison{' '}
+              {testSize > 0 ? '(ranked by backtest RMSE)' : '(ranked by in-sample RMSE)'}
+            </h3>
+            <table className="cmp-table">
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>In-sample RMSE</th>
+                  <th>Backtest RMSE</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparison.map((r) => (
+                  <tr key={r.method} className={r.best ? 'best' : ''}>
+                    <td>
+                      {r.label}
+                      {r.best ? ' ★' : ''}
+                    </td>
+                    <td>{r.inSampleRMSE.toFixed(2)}</td>
+                    <td>{r.backtestRMSE == null ? '—' : r.backtestRMSE.toFixed(2)}</td>
+                    <td>
+                      <button onClick={() => setMethod(r.method)}>Use</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
           <GraphExplainer

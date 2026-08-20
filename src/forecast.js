@@ -142,6 +142,77 @@ export function metrics(series, fit) {
   }
 }
 
+export function backtest(series, options, testSize) {
+  const n = series.length
+  if (!testSize || testSize < 1) return null
+  const trainLen = n - testSize
+  if (trainLen < 5) return null
+  const train = series.slice(0, trainLen)
+  const test = series.slice(trainLen)
+  const res = forecast(train, { ...options, horizon: testSize })
+  const pred = res.forecast
+  if (!pred || pred.length < testSize) return null
+  let mae = 0
+  let se = 0
+  for (let i = 0; i < testSize; i++) {
+    const e = pred[i] - test[i]
+    mae += Math.abs(e)
+    se += e * e
+  }
+  return {
+    testSize,
+    test,
+    pred: pred.slice(0, testSize),
+    mae: mae / testSize,
+    rmse: Math.sqrt(se / testSize),
+  }
+}
+
+export const METHOD_LABELS = {
+  linear: 'Linear Regression',
+  ma: 'Moving Average',
+  holt: 'Holt',
+  holtwinters: 'Holt-Winters',
+}
+
+export function compareModels(series, options) {
+  const methods = ['linear', 'ma', 'holt', 'holtwinters']
+  const testSize = options.testSize || 0
+  const rows = methods.map((method) => {
+    const opts = { ...options, method, horizon: testSize || options.horizon }
+    const res = forecast(series, opts)
+    const inS = metrics(series, res.fit)
+    const bt = testSize > 0 ? backtest(series, { ...options, method }, testSize) : null
+    const score = bt ? bt.rmse : inS.rmse
+    return {
+      method,
+      label: METHOD_LABELS[method],
+      inSampleRMSE: inS.rmse,
+      backtestRMSE: bt ? bt.rmse : null,
+      score,
+    }
+  })
+  rows.sort((a, b) => a.score - b.score)
+  rows.forEach((r, i) => {
+    r.best = i === 0
+  })
+  return rows
+}
+
+export function parseCSV(text) {
+  const lines = text.split(/\r?\n/)
+  const out = []
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+    const parts = trimmed.split(',')
+    const cell = parts.length > 1 ? parts[parts.length - 1].trim() : trimmed
+    const num = Number(cell)
+    if (!Number.isNaN(num)) out.push(num)
+  }
+  return out
+}
+
 export function parseSeries(text) {
   return text
     .split(/[\s,]+/)

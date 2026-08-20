@@ -303,3 +303,74 @@ select {
   font-weight: 600;
   flex: 0 0 auto;
 }
+
+.data-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.file-btn {
+  display: inline-flex;
+  align-items: center;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.file-btn:hover {
+  border-color: var(--accent);
+}
+
+.panel-inner {
+  margin-top: 18px;
+  padding: 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.panel-inner h3 {
+  font-size: 14px;
+  margin: 0 0 12px;
+  color: var(--text);
+}
+
+.mini-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.comparison table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.comparison th,
+.comparison td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.comparison th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.comparison tr.best td {
+  color: var(--text);
+  background: rgba(79, 140, 255, 0.08);
+}
+
+.comparison button {
+  padding: 4px 10px;
+  font-size: 12px;
+}

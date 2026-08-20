@@ -66,6 +66,9 @@
 <li><a href="#17-running--deploying-the-dashboard">Running &amp; Deploying the Dashboard</a></li>
 <li><a href="#18-glossary">Glossary</a></li>
 <li><a href="#19-further-reading">Further Reading</a></li>
+<li><a href="#20-backtesting-proving-the-forecast">Backtesting: Proving the Forecast</a></li>
+<li><a href="#21-model-comparison--auto-select">Model Comparison &amp; Auto-Select</a></li>
+<li><a href="#22-importing--exporting-data-csv">Importing &amp; Exporting Data (CSV)</a></li>
 </ol>
 <hr>
 <h2 id="1-introduction">1. Introduction</h2>
@@ -470,8 +473,20 @@ in the browser.</p>
 <td>MAE, RMSE, MAPE</td>
 </tr>
 <tr>
+<td><code>backtest</code></td>
+<td>Holds out the last N points and scores the forecast</td>
+</tr>
+<tr>
+<td><code>compareModels</code></td>
+<td>Runs all four methods and ranks them</td>
+</tr>
+<tr>
 <td><code>parseSeries</code></td>
 <td>Text → <code>number[]</code></td>
+</tr>
+<tr>
+<td><code>parseCSV</code></td>
+<td>CSV/file text → <code>number[]</code> (value column)</td>
 </tr>
 <tr>
 <td><code>sampleSeries</code></td>
@@ -574,6 +589,75 @@ intro to exponential smoothing and Holt-Winters.</li>
 <li>The <strong>Recharts</strong> documentation for how the visualization is rendered.</li>
 <li>The source files listed in Chapter 15 — the best documentation is the code itself.</li>
 </ul>
+<hr>
+<h2 id="20-backtesting-proving-the-forecast">20. Backtesting: Proving the Forecast</h2>
+<p>A model that fits the past beautifully can still fail on the future. <strong>Backtesting</strong> is the cure:
+temporarily hide the last <code>N</code> observations, ask the model to forecast them anyway, then measure how
+far off it was. It is the most honest accuracy check the dashboard offers, because it scores the
+model on data it never saw during fitting.</p>
+<h3 id="how-to-use-it">How to use it</h3>
+<p>In the <strong>Model</strong> panel there is a <strong>Backtest holdout</strong> slider (0 = off). Slide it to, say, <code>6</code> and the
+dashboard:</p>
+<ol>
+<li>Trains the model on all but the last 6 points.</li>
+<li>Forecasts those 6 withheld points.</li>
+<li>Compares the forecast to the real values and reports <strong>BT RMSE</strong> and <strong>BT MAE</strong> in a panel.</li>
+<li>Draws a <strong>cyan dashed line</strong> on the chart — the model&#39;s forecast over the withheld region — so you
+can eyeball it against the actuals (blue).</li>
+</ol>
+<h3 id="the-math-3">The math</h3>
+<p>With <code>N</code> held out, train on <code>y[0 … n−N−1]</code>, forecast <code>ŷ[n−N … n−1]</code>, and compute:</p>
+<pre><code>BT RMSE = √( (1/N) · Σ (ŷᵢ − yᵢ)² )
+BT MAE  = (1/N) · Σ |ŷᵢ − yᵢ|
+</code></pre>
+<p>Lower is better. A small backtest error is real evidence the model will generalize; a small
+<em>in-sample</em> error alone is not.</p>
+<h3 id="in-the-code-6">In the code</h3>
+<p><code>backtest(series, options, testSize)</code> in <code>src/forecast.js</code>. It returns <code>{ testSize, test, pred, mae, rmse }</code>, or <code>null</code> if there is not enough history to train (it requires at least 5 training points).</p>
+<hr>
+<h2 id="21-model-comparison-amp-auto-select">21. Model Comparison &amp; Auto-Select</h2>
+<p>Which of the four methods is <em>best</em> for your data right now? Instead of guessing, the dashboard can
+rank them all at once.</p>
+<h3 id="the-comparison-table">The comparison table</h3>
+<p>Below the chart is the <strong>Model comparison</strong> panel. It runs <strong>Linear Regression, Moving Average,
+Holt, and Holt-Winters</strong> on your current series and shows, for each:</p>
+<ul>
+<li><strong>In-sample RMSE</strong> — error on the history it was fitted to.</li>
+<li><strong>Backtest RMSE</strong> — error on the withheld holdout (when backtesting is on); otherwise a dash.</li>
+</ul>
+<p>The methods are sorted by score (backtest RMSE if backtesting is enabled, otherwise in-sample RMSE),
+and the winner is marked with a star (★). Click <strong>Use</strong> to switch the active method to that winner.</p>
+<h3 id="why-it-matters">Why it matters</h3>
+<p>Different shapes favor different models: a flat series loves Moving Average; a steady climb favors
+Linear or Holt; a wavy, repeating series favors Holt-Winters. The table turns that intuition into a
+measured, repeatable choice — and it updates live as you edit the data or the holdout size.</p>
+<h3 id="in-the-code-7">In the code</h3>
+<p><code>compareModels(series, options)</code> in <code>src/forecast.js</code> returns an array of
+<code>{ method, label, inSampleRMSE, backtestRMSE, best }</code>, already sorted with <code>best</code> set on the top
+row. <code>METHOD_LABELS</code> maps method keys to display names.</p>
+<hr>
+<h2 id="22-importing-amp-exporting-data-csv">22. Importing &amp; Exporting Data (CSV)</h2>
+<p>Typing numbers by hand is fine for a demo, but real work starts with files.</p>
+<h3 id="import">Import</h3>
+<p>In the <strong>Data</strong> panel, click <strong>Import CSV</strong>. Choose a <code>.csv</code> or <code>.txt</code> file. The parser
+(<code>parseCSV</code> in <code>src/forecast.js</code>) reads it line by line, takes the <strong>last column</strong> of each row (so a
+<code>date,value</code> file works), skips non-numeric header rows, and loads the values into the series. A
+plain comma- or space-separated list works too.</p>
+<h3 id="export">Export</h3>
+<p>Click <strong>Export CSV</strong> to download the current result as <code>forecast.csv</code>:</p>
+<pre><code>t,type,value,lower,upper
+0,history,10
+1,history,12
+...
+12,forecast,24.3,21.0,27.6
+13,forecast,25.1,21.4,28.8
+...
+</code></pre>
+<p>History rows have empty bounds; forecast rows include the <strong>95% prediction interval</strong> (lower/upper),
+so the file is ready for a spreadsheet or another tool.</p>
+<h3 id="in-the-code-8">In the code</h3>
+<p>Import uses the browser <code>FileReader</code> and <code>parseCSV</code>; export builds a CSV string, wraps it in a
+<code>Blob</code>, and triggers a download via a temporary anchor element. Both live in <code>src/App.jsx</code>.</p>
 <hr>
 <p><em>End of book. The dashboard and this guide are meant to be read together: change a control, watch the
 graph, and revisit the relevant chapter to understand why it moved.</em></p>
