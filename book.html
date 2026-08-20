@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Forecast Dashboard Book — Calvin Okoth</title>
+<style>
+  :root { --ink:#1c2430; --muted:#5b647a; --line:#e3e7ef; --accent:#4f8cff; --bg:#f7f8fb; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+    font-family: Georgia, 'Times New Roman', serif; line-height:1.65; }
+  .page { max-width: 820px; margin: 0 auto; padding: 56px 32px 96px; }
+  h1,h2,h3,h4 { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    line-height:1.25; scroll-margin-top:24px; }
+  h1 { font-size: 2.1rem; margin-top:0; }
+  h2 { font-size: 1.5rem; margin-top: 2.4rem; padding-bottom:.3rem; border-bottom:1px solid var(--line); }
+  h3 { font-size: 1.2rem; margin-top:1.8rem; }
+  p { margin: 1rem 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    background:#eef1f7; padding:.12em .4em; border-radius:4px; font-size:.9em; }
+  pre { background:#0e1117; color:#e6e9f0; padding:16px; border-radius:10px; overflow:auto; }
+  pre code { background:transparent; color:inherit; padding:0; }
+  table { border-collapse: collapse; width:100%; margin:1.2rem 0; font-size:.95rem;
+    font-family: system-ui, sans-serif; }
+  th, td { border:1px solid var(--line); padding:8px 10px; text-align:left; }
+  th { background:#eef1f7; }
+  ul, ol { padding-left: 1.4rem; }
+  li { margin:.35rem 0; }
+  hr { border:none; border-top:1px solid var(--line); margin:2.4rem 0; }
+  .cover { text-align:center; padding:48px 0 32px; border-bottom:2px solid var(--ink); margin-bottom:8px; }
+  .cover .sub { color:var(--muted); font-style:italic; font-size:1.1rem; }
+  .cover .meta { margin-top:18px; font-family: system-ui, sans-serif; color:var(--muted); font-size:.95rem; }
+  .cover .author { font-weight:700; color:var(--ink); font-size:1.15rem; }
+  blockquote { border-left:3px solid var(--accent); margin:1.2rem 0; padding:.2rem 1rem; color:var(--muted); }
+  .tip { background:#eef1f7; border-left:3px solid var(--accent); padding:.8rem 1rem; border-radius:6px; }
+</style>
+</head>
+<body>
+  <div class="page">
+<h1 id="the-forecast-dashboard-book">The Forecast Dashboard Book</h1>
+<h3 id="a-complete-guide-to-understanding-using-and-extending-the-interactive-time-series-predictor">A complete guide to understanding, using, and extending the interactive time-series predictor</h3>
+<p><strong>Author:</strong> Calvin Okoth
+<strong>Version:</strong> 1.0 — Companion to the Forecast Dashboard (React + Vite)
+<strong>Published:</strong> 2026-08-21</p>
+<hr>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#1-introduction">Introduction</a></li>
+<li><a href="#2-who-this-book-is-for">Who This Book Is For</a></li>
+<li><a href="#3-the-big-idea-what-forecasting-means">The Big Idea: What Forecasting Means</a></li>
+<li><a href="#4-the-data-the-model-understands">The Data the Model Understands</a></li>
+<li><a href="#5-how-a-forecast-is-produced">How a Forecast Is Produced</a></li>
+<li><a href="#6-model-one--linear-regression">Model One — Linear Regression</a></li>
+<li><a href="#7-model-two--moving-average">Model Two — Moving Average</a></li>
+<li><a href="#8-model-three--exponential-smoothing-holt">Model Three — Exponential Smoothing (Holt)</a></li>
+<li><a href="#9-model-four--holt-winters-seasonal">Model Four — Holt-Winters (Seasonal)</a></li>
+<li><a href="#10-confidence-intervals-how-sure-are-we">Confidence Intervals: How Sure Are We?</a></li>
+<li><a href="#11-reading-the-graph">Reading the Graph</a></li>
+<li><a href="#12-the-error-metrics-mae-rmse-mape">The Error Metrics (MAE, RMSE, MAPE)</a></li>
+<li><a href="#13-using-the-dashboard">Using the Dashboard</a></li>
+<li><a href="#14-limitations-what-this-model-cannot-do">Limitations: What This Model Cannot Do</a></li>
+<li><a href="#15-under-the-hood-architecture--code">Under the Hood: Architecture &amp; Code</a></li>
+<li><a href="#16-a-worked-example">A Worked Example</a></li>
+<li><a href="#17-running--deploying-the-dashboard">Running &amp; Deploying the Dashboard</a></li>
+<li><a href="#18-glossary">Glossary</a></li>
+<li><a href="#19-further-reading">Further Reading</a></li>
+</ol>
+<hr>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>The <strong>Forecast Dashboard</strong> is a small, self-contained web application that takes a list of
+numbers you paste in and predicts what comes next. It is an <em>interactive predictor</em>: you change the
+data or the settings, and the chart, the numbers, and the explanations update instantly.</p>
+<p>This book explains, in plain language and with the underlying mathematics, exactly how that
+prediction is made. You do not need a background in statistics to read it — every formula is
+accompanied by a plain-English description. By the end you will understand:</p>
+<ul>
+<li>what kind of data the tool can read,</li>
+<li>the four forecasting methods it offers and when to use each,</li>
+<li>how it expresses uncertainty with prediction intervals,</li>
+<li>how to read every element of the chart,</li>
+<li>how to interpret the error scores,</li>
+<li>and how the code itself is organized if you want to extend it.</li>
+</ul>
+<hr>
+<h2 id="2-who-this-book-is-for">2. Who This Book Is For</h2>
+<ul>
+<li><strong>Curious beginners</strong> who want to understand forecasting without heavy math.</li>
+<li><strong>Analysts</strong> who need a quick, visual &quot;what happens next&quot; estimate from a raw series.</li>
+<li><strong>Students</strong> learning time-series methods (regression, smoothing, seasonality).</li>
+<li><strong>Developers</strong> who want to modify or extend the dashboard.</li>
+</ul>
+<p>No single chapter requires the previous one, but reading them in order gives the smoothest path.</p>
+<hr>
+<h2 id="3-the-big-idea-what-forecasting-means">3. The Big Idea: What Forecasting Means</h2>
+<p>A <strong>time series</strong> is just a sequence of measurements taken one after another — daily sales, hourly
+temperature, monthly visitors, weekly weight. The position in the sequence is &quot;time&quot; (step 0, step
+1, step 2, …), and the value is what you measured.</p>
+<p><strong>Forecasting</strong> means: <em>look at the past, find a pattern, and assume the pattern continues into the
+future.</em> Every model in this dashboard does exactly that. They differ only in <strong>what kind of pattern
+they assume</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Assumption about the world</th>
+<th>Model that matches it</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>&quot;The future is a straight line from the past.&quot;</td>
+<td>Linear Regression</td>
+</tr>
+<tr>
+<td>&quot;The future is roughly the recent average.&quot;</td>
+<td>Moving Average</td>
+</tr>
+<tr>
+<td>&quot;The future follows the recent level <strong>and</strong> direction.&quot;</td>
+<td>Holt (Exponential Smoothing)</td>
+</tr>
+<tr>
+<td>&quot;The future follows level, direction, <strong>and</strong> a repeating cycle.&quot;</td>
+<td>Holt-Winters</td>
+</tr>
+</tbody></table>
+<p>None of them <em>know</em> the future. They make a reasoned guess based on the shape of what you provided.</p>
+<hr>
+<h2 id="4-the-data-the-model-understands">4. The Data the Model Understands</h2>
+<p>The dashboard accepts a <strong>single, univariate, numeric time series</strong>. Let&#39;s unpack those words:</p>
+<ul>
+<li><strong>Single / univariate</strong> — one number per time step. There are no extra columns (no &quot;price&quot; next to
+&quot;date&quot; next to &quot;region&quot;).</li>
+<li><strong>Numeric</strong> — plain numbers (integers or decimals).</li>
+<li><strong>Time series</strong> — the order matters. The first number is step 0, the next is step 1, and so on.</li>
+</ul>
+<h3 id="how-you-enter-it">How you enter it</h3>
+<p>You type or paste values separated by commas or spaces:</p>
+<pre><code>10, 12, 11, 14, 13, 16, 15, 18, 17, 20, 19, 22
+</code></pre>
+<p>The tool (<code>parseSeries</code> in <code>src/forecast.js</code>) splits that text on spaces and commas, converts each
+piece to a number, and drops anything that is not a valid number. Internally the series becomes a
+JavaScript array <code>number[]</code>, where the <strong>array index is the time step</strong>.</p>
+<h3 id="what-it-deliberately-does-not-accept">What it deliberately does <em>not</em> accept</h3>
+<ul>
+<li>Dates or timestamps (time is just the integer position 0, 1, 2, …).</li>
+<li>Labels, categories, or names.</li>
+<li>Multiple variables at once (no &quot;predict sales from ad-spend&quot;).</li>
+<li>Missing values represented as blanks — they are simply ignored if they fail to parse.</li>
+</ul>
+<blockquote>
+<p><strong>Key point:</strong> because time is an index, the tool assumes your observations are <strong>evenly spaced</strong>
+(daily, monthly, hourly — whatever your unit is). It does not know the calendar.</p>
+</blockquote>
+<p>Three <strong>sample generators</strong> let you experiment without typing:</p>
+<ul>
+<li><strong>Random walk</strong> — a jittery, directionless path.</li>
+<li><strong>Trend</strong> — a steady upward climb with noise.</li>
+<li><strong>Seasonal</strong> — a sine wave (12-step cycle) plus noise — ideal for testing Holt-Winters.</li>
+</ul>
+<hr>
+<h2 id="5-how-a-forecast-is-produced">5. How a Forecast Is Produced</h2>
+<p>Regardless of the method, the pipeline is always the same:</p>
+<ol>
+<li><strong>Parse</strong> the text into a numeric array <code>y[0…n-1]</code>.</li>
+<li><strong>Fit</strong> the chosen model to that history, producing a <code>fit</code> array (the model&#39;s best guess at each
+past point).</li>
+<li><strong>Extrapolate</strong> forward <code>horizon</code> steps to produce <code>forecast[0…H-1]</code>.</li>
+<li><strong>Measure</strong> the fit against the real history to compute error metrics.</li>
+<li><strong>Construct</strong> a 95% prediction interval around the forecast.</li>
+<li><strong>Render</strong> history, fit, forecast, and interval on one chart.</li>
+</ol>
+<p>The central dispatch function is <code>forecast(series, options)</code> in <code>src/forecast.js</code>, which routes to
+the correct method based on the <code>method</code> option (<code>&#39;linear&#39;</code>, <code>&#39;ma&#39;</code>, <code>&#39;holt&#39;</code>, or <code>&#39;holtwinters&#39;</code>).</p>
+<hr>
+<h2 id="6-model-one-linear-regression">6. Model One — Linear Regression</h2>
+<p><strong>Best when:</strong> the data shows a steady upward or downward trend and no repeating cycle.</p>
+<h3 id="the-idea">The idea</h3>
+<p>Draw the best possible straight line through your points. &quot;Best possible&quot; means the line that
+minimizes the total squared distance from the points to the line (this is called <strong>ordinary least
+squares</strong>, or OLS).</p>
+<p>The line has the form:</p>
+<pre><code>y = m · x + b
+</code></pre>
+<ul>
+<li><code>x</code> is the time step (0, 1, 2, …).</li>
+<li><code>m</code> is the <strong>slope</strong> (how much <code>y</code> changes per step).</li>
+<li><code>b</code> is the <strong>intercept</strong> (the value at step 0).</li>
+</ul>
+<h3 id="the-math">The math</h3>
+<p>Given <code>n</code> points, compute the means <code>x̄</code> and <code>ȳ</code>. Then:</p>
+<pre><code>m = Σ (xᵢ − x̄)(yᵢ − ȳ)  /  Σ (xᵢ − x̄)²
+b = ȳ − m · x̄
+</code></pre>
+<p>The <strong>fit</strong> at each step <code>i</code> is <code>b + m·i</code>. The <strong>forecast</strong> <code>h</code> steps beyond the last observation
+(at index <code>n−1</code>) is:</p>
+<pre><code>forecast(h) = b + m · (n − 1 + h)
+</code></pre>
+<p>Because the formula is a straight line, the forecast is a straight continuation of the trend — it
+never curves or cycles.</p>
+<h3 id="in-the-code">In the code</h3>
+<p><code>linearRegressionForecast(series, horizon)</code> in <code>src/forecast.js</code>. If the history is perfectly flat
+(denominator zero), the slope is set to 0 so it forecasts a constant.</p>
+<hr>
+<h2 id="7-model-two-moving-average">7. Model Two — Moving Average</h2>
+<p><strong>Best when:</strong> the series is roughly stable and noisy, with no clear trend or cycle.</p>
+<h3 id="the-idea-1">The idea</h3>
+<p>Take the average of the <strong>last <code>window</code> observations</strong> and declare: &quot;the future will stay around
+that average.&quot; Every forecast step is the same number.</p>
+<h3 id="the-math-1">The math</h3>
+<pre><code>value = ( y[n−window] + … + y[n−1] ) / window
+forecast(h) = value      for all h
+</code></pre>
+<p>The <strong>fit</strong> is shown only for the most recent <code>window</code> points (the line is flat there). Earlier
+points have no fit (they are left blank on the chart).</p>
+<h3 id="choosing-the-window">Choosing the window</h3>
+<ul>
+<li><strong>Larger window</strong> → smoother, ignores recent bumps, but <strong>lags</strong> behind real changes.</li>
+<li><strong>Smaller window</strong> → reacts fast to recent levels, but is <strong>noisier</strong>.</li>
+</ul>
+<p>This model has no slope, so it cannot follow a trend — it will always flatten out.</p>
+<h3 id="in-the-code-1">In the code</h3>
+<p><code>movingAverageForecast(series, horizon, window)</code>. The window is clamped to at least 1 and at most the
+number of data points.</p>
+<hr>
+<h2 id="8-model-three-exponential-smoothing-holt">8. Model Three — Exponential Smoothing (Holt)</h2>
+<p><strong>Best when:</strong> the series has a level <strong>and</strong> a direction (trend), but no seasonality.</p>
+<h3 id="the-idea-2">The idea</h3>
+<p>Holt&#39;s method keeps track of two evolving quantities:</p>
+<ul>
+<li><strong>Level</strong> — roughly &quot;where are we now?&quot;</li>
+<li><strong>Trend</strong> — roughly &quot;which way and how fast are we moving?&quot;</li>
+</ul>
+<p>New observations gently pull the level and trend toward the latest data. Two smoothing weights
+control how quickly they adapt:</p>
+<ul>
+<li><strong>α (alpha)</strong> — weight on the <strong>level</strong>.</li>
+<li><strong>β (beta)</strong> — weight on the <strong>trend</strong>.</li>
+</ul>
+<h3 id="the-math-simplified">The math (simplified)</h3>
+<p>Each step updates:</p>
+<pre><code>level  = α·yₜ + (1−α)·(level + trend)      // blend new value with last forecast
+trend  = β·(level − prevLevel) + (1−β)·trend
+</code></pre>
+<p>The <strong>forecast</strong> <code>h</code> steps ahead is:</p>
+<pre><code>forecast(h) = level + h · trend
+</code></pre>
+<p>So Holt can slope upward or downward, unlike Moving Average.</p>
+<h3 id="reading-the-sliders">Reading the sliders</h3>
+<ul>
+<li><strong>α and β near 1</strong> → the model chases recent changes quickly (more wiggly, more reactive).</li>
+<li><strong>α and β near 0</strong> → the model holds steadier, trusting its old estimates (smoother, slower).</li>
+</ul>
+<h3 id="in-the-code-2">In the code</h3>
+<p><code>holtForecast(series, horizon, alpha, beta)</code> in <code>src/forecast.js</code>.</p>
+<hr>
+<h2 id="9-model-four-holt-winters-seasonal">9. Model Four — Holt-Winters (Seasonal)</h2>
+<p><strong>Best when:</strong> the series has a level, a trend, <strong>and</strong> a repeating cycle (e.g. monthly sales that
+rise every December).</p>
+<h3 id="the-idea-3">The idea</h3>
+<p>Holt-Winters adds a third component — the <strong>seasonal</strong> pattern — on top of Holt&#39;s level and trend.
+The seasonal component captures &quot;what usually happens at this point in the cycle.&quot;</p>
+<p>You tell the model the <strong>season length</strong> <code>m</code> (for example, 12 for monthly data with a yearly cycle,
+or 7 for daily data with a weekly cycle). The model learns one seasonal adjustment per position in
+the cycle and repeats it into the future.</p>
+<h3 id="the-math-additive-form">The math (additive form)</h3>
+<p>Three weights:</p>
+<ul>
+<li><strong>α (alpha)</strong> — level</li>
+<li><strong>β (beta)</strong> — trend</li>
+<li><strong>γ (gamma)</strong> — season</li>
+</ul>
+<p>Initialization (from the first cycles of history):</p>
+<pre><code>level₀  = mean of first m points
+trend₀  = (mean of 2nd cycle − mean of 1st cycle) / m
+seasonⱼ = yⱼ − level₀        for j = 0 … m−1
+</code></pre>
+<p>Then, stepping through the history, the model updates level, trend, and the seasonal term for the
+current cycle position <code>s = t mod m</code>. The forecast <code>h</code> steps ahead is:</p>
+<pre><code>forecast(h) = level + h·trend + season[(n−1+h) mod m]
+</code></pre>
+<p>This is why Holt-Winters can both <em>climb</em> (trend) and <em>wave</em> (season) at the same time.</p>
+<h3 id="practical-note">Practical note</h3>
+<p>To estimate a season you need <strong>at least about two full cycles</strong> of history (roughly <code>2·m</code> points).
+The code automatically clamps the season length to at most half the series length so it cannot ask
+for more cycles than you supplied.</p>
+<h3 id="in-the-code-3">In the code</h3>
+<p><code>holtWintersForecast(series, horizon, alpha, beta, gamma, seasonLength)</code> in <code>src/forecast.js</code>.</p>
+<hr>
+<h2 id="10-confidence-intervals-how-sure-are-we">10. Confidence Intervals: How Sure Are We?</h2>
+<p>A single forecast number is a <em>best guess</em>. The real future could be a bit higher or lower. The
+dashboard shows this uncertainty as a <strong>95% prediction interval</strong> — a band around the forecast.</p>
+<h3 id="the-intuition">The intuition</h3>
+<p>The model&#39;s past errors (its <strong>residuals</strong>) tell us how &quot;surprising&quot; new data tends to be. If the
+model was usually off by ±5 in the past, the future is likely off by a similar amount — and the
+further we look ahead, the wider the uncertainty becomes.</p>
+<h3 id="the-math-2">The math</h3>
+<ol>
+<li>Compute residuals on the history: <code>eᵢ = yᵢ − fitᵢ</code> (only where a fit exists).</li>
+<li>Take their sample standard deviation <code>σ</code> (using <code>n−1</code> in the denominator).</li>
+<li>For forecast step <code>h</code> (0-indexed), the half-width is:</li>
+</ol>
+<pre><code>half(h) = 1.96 · σ · √(h + 1)
+</code></pre>
+<ol start="4">
+<li>The interval is:</li>
+</ol>
+<pre><code>lower(h) = forecast(h) − half(h)
+upper(h) = forecast(h) + half(h)
+</code></pre>
+<p>The factor <strong>1.96</strong> is the 95% critical value of the normal distribution; <code>√(h+1)</code> makes the band
+<strong>widen with the square root of the horizon</strong>, so near-term steps are tight and distant steps are
+loose.</p>
+<h3 id="what-it-is-not">What it is <em>not</em></h3>
+<p>This is a simple, approximate interval based on residual spread — it is not a full statistical
+forecast distribution, and it assumes the future error behavior resembles the past.</p>
+<h3 id="in-the-code-4">In the code</h3>
+<p><code>confidenceIntervals(series, fit, forecast, z = 1.96)</code> in <code>src/forecast.js</code>. With fewer than two
+valid residuals it returns no interval.</p>
+<hr>
+<h2 id="11-reading-the-graph">11. Reading the Graph</h2>
+<p>The chart (<code>ForecastChart</code> in <code>src/components/ForecastChart.jsx</code>) shows everything on one timeline.
+Below the chart, the <strong>&quot;Reading this graph&quot;</strong> panel explains each element using your live data.</p>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>Color</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>History</strong></td>
+<td>Solid blue</td>
+<td>The values you entered, from <code>t=0</code> to <code>t=n−1</code>.</td>
+</tr>
+<tr>
+<td><strong>Fit</strong></td>
+<td>Green dashed</td>
+<td>The model&#39;s fitted line over the history (in-sample); basis for the error metrics.</td>
+</tr>
+<tr>
+<td><strong>Forecast</strong></td>
+<td>Orange dashed</td>
+<td>The predicted values for the next <code>horizon</code> steps.</td>
+</tr>
+<tr>
+<td><strong>95% interval</strong></td>
+<td>Orange band</td>
+<td>The expected range around the forecast, widening with the horizon.</td>
+</tr>
+<tr>
+<td><strong>Boundary</strong></td>
+<td>Vertical grey dashed</td>
+<td>The line at <code>t=n−1</code>: left = observed, right = predicted.</td>
+</tr>
+</tbody></table>
+<p>The history and forecast lines are joined at the last real point so the eye can follow the
+transition from &quot;known&quot; to &quot;predicted.&quot;</p>
+<hr>
+<h2 id="12-the-error-metrics-mae-rmse-mape">12. The Error Metrics (MAE, RMSE, MAPE)</h2>
+<p>After fitting, the dashboard scores the model on how well its <code>fit</code> matched the actual history.
+These appear as cards at the top of the main panel.</p>
+<ul>
+<li><p><strong>MAE — Mean Absolute Error</strong></p>
+<pre><code>MAE = average of |fitᵢ − yᵢ|
+</code></pre>
+<p>The average size of the misses, in the original units. Easy to interpret.</p>
+</li>
+<li><p><strong>RMSE — Root Mean Square Error</strong></p>
+<pre><code>RMSE = √( average of (fitᵢ − yᵢ)² )
+</code></pre>
+<p>Like MAE but penalizes large errors more heavily. Use it when big misses matter most.</p>
+</li>
+<li><p><strong>MAPE — Mean Absolute Percentage Error</strong></p>
+<pre><code>MAPE = average of |(fitᵢ − yᵢ) / yᵢ|  × 100%
+</code></pre>
+<p>The error as a percentage of the actual values, so you can compare across scales.</p>
+</li>
+</ul>
+<p>Lower is better for all three. They describe <strong>how well the model explained the past</strong> — a useful but
+imperfect hint about how well it will predict the future.</p>
+<h3 id="in-the-code-5">In the code</h3>
+<p><code>metrics(series, fit)</code> in <code>src/forecast.js</code>. Points without a valid fit (e.g. before the Moving
+Average window) are skipped.</p>
+<hr>
+<h2 id="13-using-the-dashboard">13. Using the Dashboard</h2>
+<ol>
+<li><strong>Enter data</strong> in the &quot;Series&quot; box, or click <strong>Random walk / Trend / Seasonal</strong> to load a sample.</li>
+<li><strong>Pick a method</strong> from the Model dropdown.</li>
+<li><strong>Set the horizon</strong> — how many steps into the future to predict (1–36).</li>
+<li><strong>Adjust method-specific controls</strong>:<ul>
+<li>Moving Average → <strong>Window</strong>.</li>
+<li>Holt → <strong>Alpha</strong>, <strong>Beta</strong>.</li>
+<li>Holt-Winters → <strong>Season length</strong>, <strong>Alpha</strong>, <strong>Beta</strong>, <strong>Gamma</strong>.</li>
+</ul>
+</li>
+<li><strong>Read the results</strong>: the metrics cards, the chart (history + fit + forecast + interval), the
+&quot;Forecast&quot; chips (one value per step), the &quot;How it works&quot; explainer, and the &quot;Reading this graph&quot;
+panel.</li>
+</ol>
+<p>Everything updates live as you change anything.</p>
+<hr>
+<h2 id="14-limitations-what-this-model-cannot-do">14. Limitations: What This Model Cannot Do</h2>
+<p>Be honest about the boundaries:</p>
+<ul>
+<li><strong>No seasonality</strong> in the first three models — only Holt-Winters handles cycles.</li>
+<li><strong>No multivariate input</strong> — a single series only; no external predictors.</li>
+<li><strong>No real timestamps</strong> — time is an integer index, so irregular gaps and calendar effects are
+invisible.</li>
+<li><strong>No probabilistic rigor</strong> — the 95% band is an approximation from residual spread, not a
+calibrated statistical interval.</li>
+<li><strong>Point forecasts only conceptually</strong> — trend/season are extrapolated blindly; a Holt-Winters
+forecast will keep repeating the learned season forever, even if the real world changes.</li>
+<li><strong>Sensitive to outliers and scale</strong> — a single wild value can distort regression and smoothing.</li>
+</ul>
+<p>Use it for quick, visual, single-series exploration — not for safety-critical or regulated
+forecasting.</p>
+<hr>
+<h2 id="15-under-the-hood-architecture-amp-code">15. Under the Hood: Architecture &amp; Code</h2>
+<p>The project is a standard <strong>React + Vite</strong> single-page app with no backend. All forecasting happens
+in the browser.</p>
+<pre><code>forecast-dashboard/
+├── index.html
+├── package.json
+├── vite.config.js
+└── src/
+    ├── main.jsx                 # React entry point
+    ├── App.jsx                  # Dashboard UI, state, controls, explainers
+    ├── index.css                # Styling (dark theme)
+    ├── forecast.js              # ALL forecasting logic (pure functions)
+    └── components/
+        └── ForecastChart.jsx    # Recharts line chart
+</code></pre>
+<h3 id="the-forecasting-engine-srcforecastjs">The forecasting engine (<code>src/forecast.js</code>)</h3>
+<p>Pure, testable functions — no React, no DOM:</p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>linearRegressionForecast</code></td>
+<td>OLS straight-line fit + extrapolation</td>
+</tr>
+<tr>
+<td><code>movingAverageForecast</code></td>
+<td>Flat forecast from recent average</td>
+</tr>
+<tr>
+<td><code>holtForecast</code></td>
+<td>Level + trend exponential smoothing</td>
+</tr>
+<tr>
+<td><code>holtWintersForecast</code></td>
+<td>Level + trend + seasonal components</td>
+</tr>
+<tr>
+<td><code>confidenceIntervals</code></td>
+<td>95% band from residual σ</td>
+</tr>
+<tr>
+<td><code>forecast</code></td>
+<td>Dispatcher: picks a method</td>
+</tr>
+<tr>
+<td><code>metrics</code></td>
+<td>MAE, RMSE, MAPE</td>
+</tr>
+<tr>
+<td><code>parseSeries</code></td>
+<td>Text → <code>number[]</code></td>
+</tr>
+<tr>
+<td><code>sampleSeries</code></td>
+<td>Random / trend / seasonal generators</td>
+</tr>
+</tbody></table>
+<h3 id="the-ui-srcappjsx">The UI (<code>src/App.jsx</code>)</h3>
+<p>Holds the state (text, method, horizon, sliders) with React <code>useState</code>/<code>useMemo</code>, builds the chart
+data, and renders:</p>
+<ul>
+<li><code>Metric</code> — a single stat card.</li>
+<li><code>ModelExplainer</code> — the &quot;How it works&quot; panel (method-specific text + interval note).</li>
+<li><code>GraphExplainer</code> — the &quot;Reading this graph&quot; panel (live, data-keyed legend).</li>
+<li><code>ForecastChart</code> — the visualization.</li>
+</ul>
+<p>To extend the tool, the cleanest path is to add a new pure function in <code>forecast.js</code>, register it in
+the <code>forecast()</code> dispatcher, add an <code>&lt;option&gt;</code> in the method dropdown, and (if needed) add its
+controls in <code>App.jsx</code>.</p>
+<hr>
+<h2 id="16-a-worked-example">16. A Worked Example</h2>
+<p>Load the <strong>Seasonal</strong> sample (a 12-step sine wave with noise, 48 points). Then:</p>
+<ol>
+<li>Select <strong>Holt-Winters</strong>, set <strong>Season length = 12</strong>.</li>
+<li>Try <strong>Alpha = 0.5, Beta = 0.1, Gamma = 0.3</strong>.</li>
+<li>Set <strong>Horizon = 24</strong>.</li>
+</ol>
+<p>You should see the green fit track the wave, the orange forecast continue both the upward drift (if
+any) and the repeating 12-step cycle, and the orange band widen as it projects further out. Switch
+to <strong>Linear Regression</strong> on the same data and notice the forecast becomes a single straight line
+that ignores the wave entirely — a clear illustration of &quot;the model assumes the pattern you pick.&quot;</p>
+<hr>
+<h2 id="17-running-amp-deploying-the-dashboard">17. Running &amp; Deploying the Dashboard</h2>
+<p>This book&#39;s companion app is a standard React + Vite project with <strong>no backend</strong> — all forecasting
+happens in the browser. You only need <a href="https://nodejs.org">Node.js</a> (v18+) installed.</p>
+<h3 id="project-layout">Project layout</h3>
+<pre><code>forecast-dashboard/
+├── index.html
+├── package.json          # dependencies and scripts
+├── vite.config.js
+├── BOOK.md               # this book
+└── src/
+    ├── main.jsx
+    ├── App.jsx
+    ├── index.css
+    ├── forecast.js
+    └── components/ForecastChart.jsx
+</code></pre>
+<h3 id="local-development">Local development</h3>
+<p>From the project folder:</p>
+<pre><code class="language-bash">npm install      # install dependencies (first time only)
+npm run dev      # start the live dev server (hot-reload)
+</code></pre>
+<p>Vite prints a local URL such as <code>http://localhost:5173/</code>. Open it in your browser; every edit you
+save is reflected instantly.</p>
+<h3 id="production-build-amp-preview">Production build &amp; preview</h3>
+<pre><code class="language-bash">npm run build    # bundle the optimized static site into dist/
+npm run preview  # serve the built dist/ folder locally
+</code></pre>
+<p>The production build is a set of static files (HTML, CSS, JS) with no server logic, which makes it
+trivial to host anywhere static.</p>
+<h3 id="publishing-to-the-web-static-hosts">Publishing to the web (static hosts)</h3>
+<p>Because the output is static, you can deploy it to any of these without code changes:</p>
+<ul>
+<li><strong>Netlify / Vercel</strong> — drag-and-drop the <code>dist/</code> folder, or connect the Git repository.</li>
+<li><strong>GitHub Pages</strong> — push <code>dist/</code> to a <code>gh-pages</code> branch.</li>
+<li><strong>Any web server</strong> — copy <code>dist/</code> to the server&#39;s web root.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> the app reads data you type and runs entirely client-side, so it needs no API keys,
+database, or server-side computation. &quot;Deploying&quot; simply means serving the static files.</p>
+</blockquote>
+<h3 id="default-dataset">Default dataset</h3>
+<p>On first load the dashboard shows this sample series so the chart is never empty:</p>
+<pre><code>10, 12, 11, 14, 13, 16, 15, 18, 17, 20, 19, 22
+</code></pre>
+<p>It is a mild upward trend — a good first thing to try each model against.</p>
+<hr>
+<h2 id="18-glossary">18. Glossary</h2>
+<ul>
+<li><strong>Time series</strong> — a sequence of values ordered in time.</li>
+<li><strong>Univariate</strong> — a single variable measured at each step.</li>
+<li><strong>Horizon</strong> — how many steps ahead to predict.</li>
+<li><strong>Fit</strong> — the model&#39;s estimate of past values (in-sample).</li>
+<li><strong>Forecast</strong> — the model&#39;s estimate of future values (out-of-sample).</li>
+<li><strong>Residual</strong> — the error at a past point: <code>actual − fit</code>.</li>
+<li><strong>Level</strong> — the current value the model thinks we are at.</li>
+<li><strong>Trend</strong> — the direction and speed of change.</li>
+<li><strong>Season / Seasonality</strong> — a repeating pattern of fixed length.</li>
+<li><strong>Smoothing weight (α, β, γ)</strong> — how quickly a component adapts to new data (0 = slow, 1 = fast).</li>
+<li><strong>Prediction interval</strong> — a range in which future values are expected to fall (here, 95%).</li>
+<li><strong>MAE / RMSE / MAPE</strong> — error scores comparing fit to actuals.</li>
+</ul>
+<hr>
+<h2 id="19-further-reading">19. Further Reading</h2>
+<ul>
+<li><em>Forecasting: Principles and Practice</em> (Hyndman &amp; Athanasopoulos) — free online, the canonical
+intro to exponential smoothing and Holt-Winters.</li>
+<li>&quot;Simple Linear Regression&quot; — any introductory statistics text for the OLS formulas.</li>
+<li>&quot;Moving Averages&quot; — for baseline smoothing and trend removal.</li>
+<li>The <strong>Recharts</strong> documentation for how the visualization is rendered.</li>
+<li>The source files listed in Chapter 15 — the best documentation is the code itself.</li>
+</ul>
+<hr>
+<p><em>End of book. The dashboard and this guide are meant to be read together: change a control, watch the
+graph, and revisit the relevant chapter to understand why it moved.</em></p>
+
+  </div>
+</body>
+</html>
